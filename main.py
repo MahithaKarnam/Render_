@@ -1,46 +1,34 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException
 import requests
 import os
+from pydantic import BaseModel
 
 app = FastAPI()
 
-# Define the base URL for the LLaMA API
-ollama_base_url = "http://localhost:11434/v1"
-OLLAMA_API_KEY = "http://localhost:11434"
-
-# Function to interact with Ollama's API (LLaMA-based)
-def call_llama_api(prompt: str) -> str:
-    headers = {
-        "Authorization": f"Bearer {os.getenv('OLLAMA_API_KEY')}",  # Correct environment variable usage
-        "Content-Type": "application/json"
-    }
-    
-    data = {
-        "model": "llama3.2",  
-        "input": [
-            {"role": "user", "content": prompt}
-        ]
-    }
-    
-    try:
-        response = requests.post(f"{ollama_base_url}/chat/completions", json=data, headers=headers)
-        
-        if response.status_code == 200:
-            return response.json()['choices'][0]['message']['content']
-        else:
-            return f"Error: {response.status_code} - {response.text}"
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-# Define the Pydantic model for input data
-class InputData(BaseModel):
+class Prompt(BaseModel):
     text: str
 
-# Define a POST endpoint for predictions
-@app.post("/predict")
-async def predict(input_data: InputData):
-    model_input = input_data.text
-    model_response = call_llama_api(model_input)
-    
-    return {"prediction": model_response}
+ollama_base_url = os.getenv("OLLAMA_URL", "http://localhost:11434/v1")
+
+@app.post("/generate")
+async def generate_response(prompt: Prompt):
+    headers = {
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "llama3.2",
+        "messages": [
+            {"role": "user", "content": prompt.text}
+        ]
+    }
+
+    try:
+        response = requests.post(f"{ollama_base_url}/chat/completions", json=data, headers=headers)
+        response.raise_for_status()
+        return {"response": response.json()['choices'][0]['message']['content']}
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Error calling Ollama API: {str(e)}")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=10000)
