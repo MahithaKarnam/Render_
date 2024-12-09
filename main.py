@@ -7,11 +7,12 @@ app = FastAPI()
 
 # Define the base URL for the LLaMA API
 ollama_base_url = "http://localhost:11434/v1"
+OLLAMA_API_KEY = "http://localhost:11434"
 
 # Function to interact with Ollama's API (LLaMA-based)
-def call_llama_api(prompt):
+def call_llama_api(prompt: str) -> str:
     headers = {
-        "Authorization": f"Bearer {os.getenv('http://localhost:11434')}",  # Optional: Add your API key if needed
+        "Authorization": f"Bearer {os.getenv('OLLAMA_API_KEY')}",  # Correct environment variable usage
         "Content-Type": "application/json"
     }
     
