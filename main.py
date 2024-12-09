@@ -17,7 +17,7 @@ def call_llama_api(prompt):
     
     data = {
         "model": "llama3.2",  
-        "messages": [
+        "input": [
             {"role": "user", "content": prompt}
         ]
     }
